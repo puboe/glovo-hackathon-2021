@@ -7,6 +7,15 @@
     android:layout_height="match_parent"
     tools:context=".ui.main.MainFragment">
 
+    <com.airbnb.lottie.LottieAnimationView
+        android:id="@+id/confettiView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        app:lottie_autoPlay="false"
+        app:lottie_loop="false"
+        app:lottie_url="https://assets9.lottiefiles.com/packages/lf20_i6sqnxav.json" />
+
     <Button
         android:id="@+id/scratch_box"
         android:layout_width="wrap_content"
