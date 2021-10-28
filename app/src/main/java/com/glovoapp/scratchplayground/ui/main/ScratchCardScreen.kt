@@ -36,7 +36,7 @@ import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.glovoapp.scratchplayground.R
 
-private const val MAX_SCRATCH_TIME = 4000L
+private const val MAX_SCRATCH_TIME = 3200L
 
 @ExperimentalComposeUiApi
 @Composable
@@ -47,6 +47,7 @@ fun ScratchCardScreen() {
     var currentPathState by remember { mutableStateOf(DraggedPath(path = Path())) }
     var movedOffsetState by remember { mutableStateOf<Offset?>(null) }
     val totalScratchTime = remember { mutableStateOf<Long>(0) }
+    val isRevealed = remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -58,6 +59,7 @@ fun ScratchCardScreen() {
                 movedOffsetState = null
                 currentPathState = DraggedPath(path = Path())
                 totalScratchTime.value = 0L
+                isRevealed.value = false
             },
             modifier = Modifier.align(Alignment.TopCenter)
         ) {
@@ -65,6 +67,14 @@ fun ScratchCardScreen() {
                 imageVector = Icons.Default.Clear, contentDescription = "Clear",
                 tint = MaterialTheme.colors.onPrimary
             )
+        }
+
+        if (totalScratchTime.value >= MAX_SCRATCH_TIME) {
+            val composition by rememberLottieComposition(LottieCompositionSpec.Url("https://assets9.lottiefiles.com/packages/lf20_i6sqnxav.json"))
+            val progress by animateLottieCompositionAsState(composition)
+
+            LottieAnimation(composition, progress)
+            isRevealed.value = true
         }
 
         // Scratch Card Implementation
@@ -78,17 +88,9 @@ fun ScratchCardScreen() {
             },
             currentPath = currentPathState.path,
             currentPathThickness = currentPathState.width,
-            totalScratchTime
+            totalScratchTime,
+            isRevealed
         )
-
-        if(totalScratchTime.value >= MAX_SCRATCH_TIME) {
-//            reveal()
-            println("Reveal! total time = $totalScratchTime")
-            val composition by rememberLottieComposition(LottieCompositionSpec.Url("https://assets9.lottiefiles.com/packages/lf20_i6sqnxav.json"))
-            val progress by animateLottieCompositionAsState(composition)
-
-            LottieAnimation(composition, progress)
-        }
     }
 }
 
@@ -103,6 +105,7 @@ fun ScratchingCanvas(
     currentPath: Path,
     currentPathThickness: Float,
     totalScratchTime: MutableState<Long>,
+    isRevealed: MutableState<Boolean>,
 ) {
     var startTime by remember { mutableStateOf(0L) }
     Canvas(
@@ -113,25 +116,20 @@ fun ScratchingCanvas(
             .pointerInteropFilter {
                 when (it.action) {
                     MotionEvent.ACTION_DOWN -> {
-//                        println("CurrentPath/ACTION_DOWN: (${it.x}, ${it.y})")
                         currentPath.moveTo(it.x, it.y)
                         startTime = System.currentTimeMillis()
                     }
                     MotionEvent.ACTION_MOVE -> {
-//                        println("MovedOffset/ACTION_MOVE: (${it.x}, ${it.y})")
                         onMovedOffset(it.x, it.y)
                         val currentTime: Long = System.currentTimeMillis()
                         val scratchTime: Long = currentTime - startTime
                         startTime = currentTime
                         totalScratchTime.value += scratchTime
-                        println("Delta=$scratchTime, total=$totalScratchTime")
                     }
                 }
                 true
             }
     ) {
-
-        this.drawContext
         val canvasWidth = size.width.toInt()
         val canvasHeight = size.height.toInt()
         val imageSize = IntSize(width = canvasWidth, height = canvasHeight)
@@ -145,16 +143,22 @@ fun ScratchingCanvas(
         movedOffset?.let {
             currentPath.addOval(oval = Rect(it, currentPathThickness))
         }
-
-        clipPath(path = currentPath, clipOp = ClipOp.Intersect) {
-            // Base Image after scratching
+        
+        if (!isRevealed.value) {
+            clipPath(path = currentPath, clipOp = ClipOp.Intersect) {
+                // Base Image after scratching
+                drawImage(
+                    image = baseImage,
+                    dstSize = imageSize
+                )
+            }
+        } else {
             drawImage(
                 image = baseImage,
                 dstSize = imageSize
             )
         }
     }
-
 }
 
 @ExperimentalComposeUiApi
